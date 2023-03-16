@@ -13,16 +13,21 @@ fn msg_to_ascii_vec(msg: &String) -> Vec<u8> {
     msg.chars().map(|ch| ch as u8).collect()
 }
 
-fn pad_msg(msg: &[u8]) -> Vec<u8> {
+fn pad_md4(msg: &[u8]) -> Vec<u8> {
     let mut res = vec![];
     res.extend_from_slice(msg);
 
+    // Bits padding
     let id = msg.len() % 64;
     if id < 56 {
         res.extend_from_slice(&PADDING[0..(56 - id)]);
     } else {
         res.extend_from_slice(&PADDING[0..(120 - id)]);
     }
+
+    // Length padding
+    let length_padding = (msg.len() * 8).to_le_bytes();
+    res.extend_from_slice(&length_padding);
 
     res
 }
@@ -59,7 +64,7 @@ mod tests {
             116, 101, 114, 32, 116, 104, 97, 110, 32, 115, 111, 99, 105, 101, 116, 121, 32, 103,
             97, 116, 104, 101, 114, 115, 32, 119, 105, 115, 100, 111, 109, 46,
         ];
-        let padded_text = pad_msg(&text);
+        let padded_text = pad_md4(&text);
         assert_eq!(
             &padded_text,
             &[
@@ -69,7 +74,7 @@ mod tests {
                 103, 97, 116, 104, 101, 114, 115, 32, 107, 110, 111, 119, 108, 101, 100, 103, 101,
                 32, 102, 97, 115, 116, 101, 114, 32, 116, 104, 97, 110, 32, 115, 111, 99, 105, 101,
                 116, 121, 32, 103, 97, 116, 104, 101, 114, 115, 32, 119, 105, 115, 100, 111, 109,
-                46, 128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                46, 128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 80, 3, 0, 0, 0, 0, 0, 0,
             ]
         );
     }
@@ -78,7 +83,7 @@ mod tests {
     fn test_msg_padding() {
         let msg_str = "The saddest aspect of life right now is that science gathers knowledge faster than society gathers wisdom.".to_string();
         let msg_ascii = msg_to_ascii_vec(&msg_str);
-        let padded_msg_ascii = pad_msg(&msg_ascii);
+        let padded_msg_ascii = pad_md4(&msg_ascii);
         assert_eq!(
             &padded_msg_ascii,
             &[
@@ -88,7 +93,7 @@ mod tests {
                 103, 97, 116, 104, 101, 114, 115, 32, 107, 110, 111, 119, 108, 101, 100, 103, 101,
                 32, 102, 97, 115, 116, 101, 114, 32, 116, 104, 97, 110, 32, 115, 111, 99, 105, 101,
                 116, 121, 32, 103, 97, 116, 104, 101, 114, 115, 32, 119, 105, 115, 100, 111, 109,
-                46, 128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                46, 128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 80, 3, 0, 0, 0, 0, 0, 0,
             ]
         );
     }
