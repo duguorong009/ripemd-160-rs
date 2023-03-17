@@ -9,27 +9,21 @@ const PADDING: [u8; 64] = [
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 ];
 
-fn msg_to_ascii_vec(msg: &String) -> Vec<u8> {
-    msg.chars().map(|ch| ch as u8).collect()
-}
-
-fn pad_md4(msg: &[u8]) -> Vec<u8> {
-    let mut res = vec![];
-    res.extend_from_slice(msg);
+fn pad_message(msg: &[u8]) -> Vec<u8> {
+    let mut padded_msg = msg.to_vec();
 
     // Bits padding
     let id = msg.len() % 64;
     if id < 56 {
-        res.extend_from_slice(&PADDING[0..(56 - id)]);
+        padded_msg.extend_from_slice(&PADDING[0..(56 - id)]);
     } else {
-        res.extend_from_slice(&PADDING[0..(120 - id)]);
+        padded_msg.extend_from_slice(&PADDING[0..(120 - id)]);
     }
 
     // Length padding
-    let length_padding = (msg.len() * 8).to_le_bytes();
-    res.extend_from_slice(&length_padding);
+    padded_msg.extend_from_slice(&(msg.len() * 8).to_le_bytes());
 
-    res
+    padded_msg
 }
 
 // nonlinear functions at bit level: exor, mux, -, mux, -
@@ -121,57 +115,12 @@ fn h() -> [u32; 5] {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_msg_to_ascii_vec() {
-        let msg = "The saddest aspect of life right now is that science gathers knowledge faster than society gathers wisdom.".to_string();
-        let ascii_vec = msg_to_ascii_vec(&msg);
-        assert_eq!(
-            &ascii_vec,
-            &[
-                84, 104, 101, 32, 115, 97, 100, 100, 101, 115, 116, 32, 97, 115, 112, 101, 99, 116,
-                32, 111, 102, 32, 108, 105, 102, 101, 32, 114, 105, 103, 104, 116, 32, 110, 111,
-                119, 32, 105, 115, 32, 116, 104, 97, 116, 32, 115, 99, 105, 101, 110, 99, 101, 32,
-                103, 97, 116, 104, 101, 114, 115, 32, 107, 110, 111, 119, 108, 101, 100, 103, 101,
-                32, 102, 97, 115, 116, 101, 114, 32, 116, 104, 97, 110, 32, 115, 111, 99, 105, 101,
-                116, 121, 32, 103, 97, 116, 104, 101, 114, 115, 32, 119, 105, 115, 100, 111, 109,
-                46,
-            ]
-        );
-    }
-
-    #[test]
-    fn test_ripemd_padding() {
-        let text = vec![
-            84, 104, 101, 32, 115, 97, 100, 100, 101, 115, 116, 32, 97, 115, 112, 101, 99, 116, 32,
-            111, 102, 32, 108, 105, 102, 101, 32, 114, 105, 103, 104, 116, 32, 110, 111, 119, 32,
-            105, 115, 32, 116, 104, 97, 116, 32, 115, 99, 105, 101, 110, 99, 101, 32, 103, 97, 116,
-            104, 101, 114, 115, 32, 107, 110, 111, 119, 108, 101, 100, 103, 101, 32, 102, 97, 115,
-            116, 101, 114, 32, 116, 104, 97, 110, 32, 115, 111, 99, 105, 101, 116, 121, 32, 103,
-            97, 116, 104, 101, 114, 115, 32, 119, 105, 115, 100, 111, 109, 46,
-        ];
-        let padded_text = pad_md4(&text);
-        assert_eq!(
-            &padded_text,
-            &[
-                84, 104, 101, 32, 115, 97, 100, 100, 101, 115, 116, 32, 97, 115, 112, 101, 99, 116,
-                32, 111, 102, 32, 108, 105, 102, 101, 32, 114, 105, 103, 104, 116, 32, 110, 111,
-                119, 32, 105, 115, 32, 116, 104, 97, 116, 32, 115, 99, 105, 101, 110, 99, 101, 32,
-                103, 97, 116, 104, 101, 114, 115, 32, 107, 110, 111, 119, 108, 101, 100, 103, 101,
-                32, 102, 97, 115, 116, 101, 114, 32, 116, 104, 97, 110, 32, 115, 111, 99, 105, 101,
-                116, 121, 32, 103, 97, 116, 104, 101, 114, 115, 32, 119, 105, 115, 100, 111, 109,
-                46, 128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 80, 3, 0, 0, 0, 0, 0, 0,
-            ]
-        );
-    }
-
     #[test]
     fn test_msg_padding() {
-        let msg_str = "The saddest aspect of life right now is that science gathers knowledge faster than society gathers wisdom.".to_string();
-        let msg_ascii = msg_to_ascii_vec(&msg_str);
-        let padded_msg_ascii = pad_md4(&msg_ascii);
+        let msg = "The saddest aspect of life right now is that science gathers knowledge faster than society gathers wisdom.".to_string();
+        let padded_msg = pad_message(msg.as_bytes());
         assert_eq!(
-            &padded_msg_ascii,
+            &padded_msg,
             &[
                 84, 104, 101, 32, 115, 97, 100, 100, 101, 115, 116, 32, 97, 115, 112, 101, 99, 116,
                 32, 111, 102, 32, 108, 105, 102, 101, 32, 114, 105, 103, 104, 116, 32, 110, 111,
