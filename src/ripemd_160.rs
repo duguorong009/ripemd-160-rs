@@ -7,7 +7,7 @@ const PADDING: [u8; 64] = [
 
 /// Padding message string for "ripemd-160" hash function
 /// NOTE: This padding is the same as "MD4" hash function.
-fn pad_message(msg: &[u8]) -> Vec<u8> {
+fn pad_msg_ripemd(msg: &[u8]) -> Vec<u8> {
     let mut padded_msg = msg.to_vec();
 
     // Bits padding
@@ -119,7 +119,7 @@ fn h() -> [u32; 5] {
 }
 
 fn ripemd_160(msg: String) -> [u8; 20] {
-    let padded_msg = pad_message(msg.as_bytes());
+    let padded_msg = pad_msg_ripemd(msg.as_bytes());
     assert!((padded_msg.len() * 8) % 512 == 0, "Invalid padding!");
 
     let [mut h0, mut h1, mut h2, mut h3, mut h4] = h();
@@ -185,30 +185,61 @@ fn ripemd_160(msg: String) -> [u8; 20] {
     res
 }
 
-#[test]
-fn test_msg_padding() {
-    let msg = "The saddest aspect of life right now is that science gathers knowledge faster than society gathers wisdom.".to_string();
-    let padded_msg = pad_message(msg.as_bytes());
-    assert_eq!(
-        &padded_msg,
-        &[
-            84, 104, 101, 32, 115, 97, 100, 100, 101, 115, 116, 32, 97, 115, 112, 101, 99, 116, 32,
-            111, 102, 32, 108, 105, 102, 101, 32, 114, 105, 103, 104, 116, 32, 110, 111, 119, 32,
-            105, 115, 32, 116, 104, 97, 116, 32, 115, 99, 105, 101, 110, 99, 101, 32, 103, 97, 116,
-            104, 101, 114, 115, 32, 107, 110, 111, 119, 108, 101, 100, 103, 101, 32, 102, 97, 115,
-            116, 101, 114, 32, 116, 104, 97, 110, 32, 115, 111, 99, 105, 101, 116, 121, 32, 103,
-            97, 116, 104, 101, 114, 115, 32, 119, 105, 115, 100, 111, 109, 46, 128, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 80, 3, 0, 0, 0, 0, 0, 0,
-        ]
-    );
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test]
-fn test_ripemd_160() {
-    let msg = "a".to_string();
-    let hash = ripemd_160(msg);
-    assert_eq!(
-        hex::encode(&hash),
-        "0bdc9d2d256b3ee9daae347be6f4dc835a467ffe"
-    )
+    #[test]
+    fn test_msg_padding() {
+        let msg = "The saddest aspect of life right now is that science gathers knowledge faster than society gathers wisdom.".to_string();
+        let padded_msg = pad_msg_ripemd(msg.as_bytes());
+        assert_eq!(
+            &padded_msg,
+            &[
+                84, 104, 101, 32, 115, 97, 100, 100, 101, 115, 116, 32, 97, 115, 112, 101, 99, 116,
+                32, 111, 102, 32, 108, 105, 102, 101, 32, 114, 105, 103, 104, 116, 32, 110, 111,
+                119, 32, 105, 115, 32, 116, 104, 97, 116, 32, 115, 99, 105, 101, 110, 99, 101, 32,
+                103, 97, 116, 104, 101, 114, 115, 32, 107, 110, 111, 119, 108, 101, 100, 103, 101,
+                32, 102, 97, 115, 116, 101, 114, 32, 116, 104, 97, 110, 32, 115, 111, 99, 105, 101,
+                116, 121, 32, 103, 97, 116, 104, 101, 114, 115, 32, 119, 105, 115, 100, 111, 109,
+                46, 128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 80, 3, 0, 0, 0, 0, 0, 0,
+            ]
+        );
+    }
+
+    fn test_inputs() -> Vec<String> {
+        vec![
+            "".to_string(),
+            "a".to_string(),
+            "abc".to_string(),
+            "message digest".to_string(),
+            "abcdefghijklmnopqrstuvwxyz".to_string(),
+            "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq".to_string(),
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".to_string(),
+        ]
+    }
+
+    fn test_output() -> Vec<String> {
+        vec![
+            "9c1185a5c5e9fc54612808977ee8f548b2258d31".to_string(),
+            "0bdc9d2d256b3ee9daae347be6f4dc835a467ffe".to_string(),
+            "8eb208f7e05d987a9b044a8e98c6b087f15a0bfc".to_string(),
+            "5d0689ef49d2fae572b881b123a85ffa21595f36".to_string(),
+            "f71c27109c692c1b56bbdceb5b9d2865b3708dbc".to_string(),
+            "12a053384a9c0c88e405a06c27dcf49ada62eb2b".to_string(),
+            "b0e20b6e3116640286ed3a87a5713079b21f5189".to_string(),
+        ]
+    }
+
+    #[test]
+    fn test_ripemd_160() {
+        let msgs = test_inputs();
+        let expected_hashes = test_output();
+        assert!(msgs.len() == expected_hashes.len(), "Test data is invalid.");
+
+        for (msg, expected_hash) in msgs.iter().zip(expected_hashes.iter()) {
+            let hash = ripemd_160(msg.clone());
+            assert_eq!(hex::encode(&hash), expected_hash.clone());
+        }
+    }
 }
